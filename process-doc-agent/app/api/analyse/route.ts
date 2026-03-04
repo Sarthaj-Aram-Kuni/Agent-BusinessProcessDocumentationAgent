@@ -1,18 +1,8 @@
-// app/api/analyse/route.ts
-// ─────────────────────────────────────────────────────────
-// POST /api/analyse
-// Receives a process description, sends it to Claude with
-// the full BPMN system prompt, returns structured analysis
-// ─────────────────────────────────────────────────────────
-
 import { NextRequest, NextResponse } from "next/server";
 import anthropic from "@/lib/anthropic";
-import { SYSTEM_PROMPT } from "@/lib/prompts";
+import { buildSystemPrompt } from "@/lib/prompts";
 
 export async function POST(request: NextRequest) {
-  // ──────────────────────────────────────
-  // 1. Read and validate request body
-  // ──────────────────────────────────────
   let body;
   try {
     body = await request.json();
@@ -23,7 +13,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { processDescription } = body;
+  const { processDescription, processType } = body;
 
   if (!processDescription || typeof processDescription !== "string") {
     return NextResponse.json(
@@ -39,50 +29,49 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ──────────────────────────────────────
-  // 2. Call Claude with full BPMN prompt
-  // ──────────────────────────────────────
   try {
     console.log("Sending request to Claude...");
     const startTime = Date.now();
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 8096,
-      system: SYSTEM_PROMPT,
-      messages: [
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+
+    let message;
+    try {
+      message = await anthropic.messages.create(
         {
-          role: "user",
-          content: `Analyse the following business process and return your full JSON analysis:\n\n${processDescription}`,
+          model: "claude-sonnet-4-5-20250929",
+          max_tokens: 8096,
+          system: buildSystemPrompt(processType),
+          messages: [
+            {
+              role: "user",
+              content: `Analyse the following business process and return your full JSON analysis:\n\n${processDescription}`,
+            },
+          ],
         },
-      ],
-    });
+        { signal: controller.signal }
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const elapsed = Date.now() - startTime;
     console.log(`Claude responded in ${elapsed}ms`);
 
-    // ──────────────────────────────────────
-    // 3. Extract text response
-    // ──────────────────────────────────────
     const responseText =
       message.content[0].type === "text" ? message.content[0].text : "";
 
-    // ──────────────────────────────────────
-    // 4. Clean and parse JSON
-    // ──────────────────────────────────────
-    // Strip markdown fences if Claude adds them
     let cleanedResponse = responseText
       .replace(/```json\s*/g, "")
       .replace(/```\s*/g, "")
       .trim();
 
-    // Sometimes Claude adds a preamble before the JSON
     const jsonStart = cleanedResponse.indexOf("{");
     if (jsonStart > 0) {
       cleanedResponse = cleanedResponse.substring(jsonStart);
     }
 
-    // Find the last closing brace (in case Claude adds text after JSON)
     const jsonEnd = cleanedResponse.lastIndexOf("}");
     if (jsonEnd !== -1 && jsonEnd < cleanedResponse.length - 1) {
       cleanedResponse = cleanedResponse.substring(0, jsonEnd + 1);
@@ -91,7 +80,7 @@ export async function POST(request: NextRequest) {
     let analysis;
     try {
       analysis = JSON.parse(cleanedResponse);
-    } catch (parseError) {
+    } catch {
       console.error("JSON parse error. Raw response:");
       console.error(cleanedResponse.substring(0, 500));
       return NextResponse.json(
@@ -103,20 +92,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ──────────────────────────────────────
-    // 5. Validate required fields
-    // ──────────────────────────────────────
     const requiredFields = ["summary", "steps", "mermaidCode", "bottlenecks", "improvements", "metrics"];
     const missingFields = requiredFields.filter((field) => !(field in analysis));
 
     if (missingFields.length > 0) {
       console.warn("Missing fields in response:", missingFields);
-      // Don't fail — just warn. Partial results are still useful.
     }
 
-    // ──────────────────────────────────────
-    // 6. Return the analysis with metadata
-    // ──────────────────────────────────────
     return NextResponse.json({
       ...analysis,
       _meta: {
@@ -136,7 +118,10 @@ export async function POST(request: NextRequest) {
     let statusCode = 500;
 
     if (error instanceof Error) {
-      if (error.message.includes("401")) {
+      if (error.name === "AbortError" || error.message.includes("aborted")) {
+        errorMessage = "Request timed out after 60 seconds. Try a shorter description or try again.";
+        statusCode = 504;
+      } else if (error.message.includes("401")) {
         errorMessage = "Invalid API key. Check your .env.local file.";
         statusCode = 401;
       } else if (error.message.includes("429")) {
@@ -155,4 +140,4 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
-}
+} 

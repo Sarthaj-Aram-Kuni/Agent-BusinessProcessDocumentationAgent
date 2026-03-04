@@ -128,3 +128,36 @@ Use this EXACT structure:
     "processHealthScore": 40
   }
 }`;
+
+// Add this BELOW the existing SYSTEM_PROMPT export
+
+export function buildSystemPrompt(processType?: string): string {
+  let contextHint = "";
+
+  if (processType && processType !== "general") {
+    const typeDescriptions: Record<string, string> = {
+      "order-to-cash":
+        "This is an Order-to-Cash (O2C) process. Pay special attention to: order entry, credit checks, fulfilment, shipping, invoicing, payment collection, and reconciliation. Common bottlenecks include manual order entry, credit approval delays, and invoice disputes.",
+      "procure-to-pay":
+        "This is a Procure-to-Pay (P2P) process. Pay special attention to: requisition, purchase order creation, goods receipt, invoice matching (3-way match), approval workflows, and payment execution. Common bottlenecks include manual PO creation, approval bottlenecks, and invoice matching errors.",
+      "hire-to-retire":
+        "This is a Hire-to-Retire (H2R) process. Pay special attention to: recruitment, onboarding, account provisioning, training, performance management, payroll, and offboarding. Common bottlenecks include manual account creation across multiple systems, paper-based checklists, and inconsistent offboarding.",
+      "record-to-report":
+        "This is a Record-to-Report (R2R) process. Pay special attention to: journal entries, account reconciliation, consolidation, financial close, reporting, and audit preparation. Common bottlenecks include manual journal entries, spreadsheet-based reconciliation, and month-end close delays.",
+      "issue-to-resolution":
+        "This is an Issue-to-Resolution process. Pay special attention to: ticket creation, triage, assignment, investigation, resolution, communication, and closure. Common bottlenecks include manual triage, poor routing, lack of SLAs, and no knowledge base.",
+      "lead-to-cash":
+        "This is a Lead-to-Cash process. Pay special attention to: lead generation, qualification, opportunity management, quoting, contract negotiation, order processing, and revenue recognition. Common bottlenecks include manual lead scoring, disconnected CRM and ERP, and delayed quoting.",
+      "plan-to-produce":
+        "This is a Plan-to-Produce process. Pay special attention to: demand planning, production scheduling, material procurement, manufacturing, quality control, and inventory management. Common bottlenecks include manual demand forecasting, disconnected planning systems, and quality inspection delays.",
+    };
+
+    contextHint = typeDescriptions[processType] || "";
+  }
+
+  if (contextHint) {
+    return `${SYSTEM_PROMPT}\n\nADDITIONAL CONTEXT:\n${contextHint}`;
+  }
+
+  return SYSTEM_PROMPT;
+}

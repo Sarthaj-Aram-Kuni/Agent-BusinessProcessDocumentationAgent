@@ -74,7 +74,7 @@ export default function MetricsBar({ metrics }: MetricsBarProps) {
       </h2>
 
       {/* Stat cards grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
         {cards.map((card) => (
           <div
             key={card.label}
