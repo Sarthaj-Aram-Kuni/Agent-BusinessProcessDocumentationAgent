@@ -1,251 +1,149 @@
-#  Business Process Documentation Agent
+# Process Documentation Agent
 
-## Background
-Following are Small and medium business facing issues because of a operational manager
-- Lack of formalized/documented processes
-- Lack of scenario and real time analysis
-- Manual, repetitive, time-consuming tasks
-- Resource/expertise constraints & resistance to change
-- Poor visibility, bottlenecks, and scalability issues
-
-# MVP V1
-
-### Project Scope & Build Plan
----
-
-## The Idea
-
-A web app where users describe a business process in plain English (or paste messy notes), and an AI agent powered by Claude:
-
-1. **Generates a structured BPMN-style flowchart** (rendered as a Mermaid diagram)
-2. **Identifies bottlenecks, redundancies, and risks** in the process
-3. **Suggests Lean/Six Sigma improvements** with estimated impact
-4. **Exports clean documentation** (Markdown or PDF) ready for stakeholder review
-
-This is essentially what a Business Analyst does manually — but automated as an intelligent assistant.
+**AI-powered business process analysis that generates BPMN flowcharts, identifies bottlenecks, and suggests Lean improvements**
 
 ---
 
-## Architecture Overview
+## Features
 
-```
-User Input (plain English)
-        │
-        ▼
-  Next.js Frontend (React)
-        │
-        ▼
-  /api/analyse  (Next.js API Route)
-        │
-        ▼
-  Anthropic Claude API
-  (System prompt with BPMN + Lean expertise)
-        │
-        ▼
-  Structured JSON Response
-  ├── mermaidCode (flowchart string)
-  ├── steps[] (process steps with details)
-  ├── bottlenecks[] (identified issues)
-  ├── improvements[] (Lean suggestions)
-  └── summary (executive overview)
-        │
-        ▼
-  Frontend renders:
-  ├── Mermaid flowchart
-  ├── Process analysis panel
-  ├── Improvement suggestions
-  └── Export to PDF / Markdown
-```
+- **AI Process Analysis** — Describe any business process in plain English and get a full structured breakdown powered by Claude
+- **BPMN Flowcharts** — Auto-generated Mermaid.js flowcharts with swim lanes, decision diamonds, and colour-coded node types (manual, automated, bottleneck)
+- **Bottleneck Detection** — Identifies High / Medium / Low severity bottlenecks with risk descriptions and targeted recommendations
+- **Lean Improvement Suggestions** — Each suggestion maps to a Lean principle (eliminate waste, reduce handoffs, automate, standardise) with concrete estimated gains
+- **Process Metrics Dashboard** — Live metrics bar showing total steps, automation %, handoff count, and a calculated process health score (0–100)
+- **Process Type Selector** — Pre-tunes the AI prompt for 7 standard enterprise process archetypes: Order-to-Cash, Procure-to-Pay, Hire-to-Retire, Record-to-Report, Issue-to-Resolution, Lead-to-Cash, Plan-to-Produce
+- **Side-by-Side Comparison Mode** — Run two analyses in parallel and compare flowcharts, bottlenecks, and metrics
+- **Analysis History** — Client-side history of past analyses with restore and delete, persisted in localStorage
+- **Export to PDF** — One-click PDF export of the full analysis report via jsPDF
+- **Export to Markdown** — Download analysis as a structured `.md` file for wikis or documentation tools
 
 ---
 
-## Core Features (MVP)
+## Tech Stack
 
-### Feature 1: Process Input
-- Large text area where user describes a process in plain English
-- Example placeholder: "When a customer places an order, the sales team checks inventory manually in a spreadsheet. If stock is available, they email the warehouse team. The warehouse picks and packs the order, then emails dispatch. Dispatch arranges a courier and updates the sales spreadsheet..."
-- Optional: dropdown to select process type (Order-to-Cash, Procure-to-Pay, Hire-to-Retire, etc.)
-
-### Feature 2: AI-Powered Analysis
-- Claude receives the input with a carefully engineered system prompt
-- Returns structured JSON containing:
-  - Process steps (actor, action, system, decision points)
-  - Mermaid.js flowchart code
-  - Bottleneck identification with severity ratings
-  - Lean improvement suggestions with estimated efficiency gains
-  - Risk flags (manual handoffs, single points of failure, no validation)
-
-### Feature 3: Visual Flowchart
-- Mermaid.js renders the flowchart in real-time
-- Colour-coded nodes: green (automated), amber (semi-manual), red (bottleneck)
-- Decision diamonds, swim lanes where appropriate
-
-### Feature 4: Analysis Dashboard
-- Cards showing: total steps, manual vs automated ratio, bottleneck count
-- Each bottleneck expandable with explanation and fix
-- Each improvement suggestion with estimated impact (Low / Medium / High)
-
-### Feature 5: Export
-- Download as PDF (flowchart + analysis)
-- Download as Markdown (for pasting into Confluence, Notion, etc.)
-- Copy Mermaid code (for embedding elsewhere)
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| AI Model | Anthropic Claude (claude-sonnet-4-5) |
+| Flowcharts | Mermaid.js |
+| PDF Export | jsPDF |
+| Deployment | Vercel |
 
 ---
 
-## System Prompt (The Secret Sauce)
+## Getting Started
 
-This is where your BA expertise shines. The system prompt should encode your domain knowledge:
+### 1. Clone the repository
 
+```bash
+git clone https://github.com/sarthajkuni/Agent-BusinessProcessDocumentationAgent.git
+cd Agent-BusinessProcessDocumentationAgent
 ```
-You are an expert Business Process Analyst with deep knowledge of BPMN 2.0 
-notation, Lean Six Sigma methodology, and enterprise process transformation.
 
-When given a business process description, you must:
+### 2. Install dependencies
 
-1. PARSE the process into discrete steps, identifying:
-   - Actors (who performs each step)
-   - Actions (what is done)
-   - Systems (what tools/software are used, if mentioned)
-   - Decision points (where the flow branches)
-   - Handoffs (where work passes between people/teams)
-
-2. GENERATE a Mermaid.js flowchart using this syntax:
-   - Use `flowchart TD` (top-down) or `flowchart LR` (left-right)
-   - Use rectangles for tasks, diamonds for decisions
-   - Use subgraphs for swim lanes (one per actor/department)
-   - Colour-code: style bottleneck nodes with fill:#ff6b6b
-   - Keep node labels concise (max 6 words)
-
-3. IDENTIFY bottlenecks and risks:
-   - Manual data entry or spreadsheet reliance
-   - Email-based handoffs (no audit trail)
-   - Single points of failure
-   - Missing validation or approval steps
-   - Redundant or duplicate steps
-   - Rate each: High / Medium / Low severity
-
-4. SUGGEST improvements using Lean principles:
-   - Eliminate waste (muda): overprocessing, waiting, defects
-   - Automate where possible
-   - Reduce handoffs
-   - Add validation gates
-   - Estimate impact: efficiency gain %, error reduction %, time saved
-
-5. RETURN your response as valid JSON with this exact structure:
-{
-  "summary": "Executive overview (2-3 sentences)",
-  "steps": [
-    {
-      "id": 1,
-      "actor": "Sales Team",
-      "action": "Check inventory in spreadsheet",
-      "system": "Excel",
-      "type": "manual|automated|decision",
-      "isBottleneck": true,
-      "bottleneckReason": "Manual lookup prone to errors"
-    }
-  ],
-  "mermaidCode": "flowchart TD\n  A[...] --> B[...]...",
-  "bottlenecks": [
-    {
-      "step_id": 1,
-      "title": "Manual inventory check",
-      "severity": "High",
-      "description": "...",
-      "recommendation": "..."
-    }
-  ],
-  "improvements": [
-    {
-      "title": "Automate inventory lookup",
-      "description": "...",
-      "impact": "High",
-      "estimatedGain": "Reduce check time from 15 min to instant",
-      "leanPrinciple": "Eliminate waiting waste"
-    }
-  ],
-  "metrics": {
-    "totalSteps": 8,
-    "manualSteps": 5,
-    "automatedSteps": 3,
-    "decisionPoints": 2,
-    "handoffs": 4,
-    "bottleneckCount": 3
-  }
-}
-
-Return ONLY valid JSON. No markdown fences. No preamble.
+```bash
+npm install
 ```
+
+### 3. Set up environment variables
+
+Create a `.env.local` file in the project root:
+
+```env
+ANTHROPIC_API_KEY=your_api_key_here
+```
+
+Get your API key from [console.anthropic.com](https://console.anthropic.com).
+
+### 4. Start the development server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
 ## Project Structure
 
 ```
-process-doc-agent/
 ├── app/
-│   ├── layout.tsx           # Root layout with fonts + metadata
-│   ├── page.tsx             # Main app page
 │   ├── api/
 │   │   └── analyse/
-│   │       └── route.ts     # API route calling Claude
-│   └── components/
-│       ├── ProcessInput.tsx  # Text area + submit
-│       ├── FlowChart.tsx     # Mermaid renderer
-│       ├── AnalysisPanel.tsx  # Bottlenecks + improvements
-│       ├── MetricsBar.tsx    # Quick stats cards
-│       └── ExportButton.tsx  # PDF/MD download
+│   │       └── route.ts          # API route — calls Claude, validates & returns JSON
+│   ├── compare/
+│   │   └── page.tsx              # Side-by-side process comparison page
+│   ├── components/
+│   │   ├── AnalysisPanel.tsx     # Main results panel (tabs: flowchart, steps, bottlenecks, improvements)
+│   │   ├── ExportButtons.tsx     # PDF and Markdown export controls
+│   │   ├── HistoryPanel.tsx      # localStorage-backed analysis history sidebar
+│   │   ├── LoadingSkeleton.tsx   # Animated placeholder shown during API call
+│   │   ├── MermaidChart.tsx      # Mermaid.js renderer with error boundary
+│   │   ├── MetricsBar.tsx        # Process health score and key metrics strip
+│   │   ├── ProcessInput.tsx      # Textarea + process type selector + submit
+│   │   ├── StepsTable.tsx        # Tabular view of parsed process steps
+│   │   └── Toast.tsx             # Non-blocking notification system
+│   ├── error.tsx                 # Next.js error boundary
+│   ├── global-error.tsx          # Top-level error boundary
+│   ├── globals.css               # Tailwind base styles
+│   ├── layout.tsx                # Root layout with metadata
+│   └── page.tsx                  # Home page
 ├── lib/
-│   └── anthropic.ts         # Claude client setup
-├── public/
-│   └── og-image.png         # Social preview image
-├── tailwind.config.ts
-├── package.json
-└── README.md
+│   ├── anthropic.ts              # Anthropic SDK client singleton
+│   ├── exportMarkdown.ts         # Markdown serialiser for analysis results
+│   ├── exportPdf.ts              # jsPDF-based PDF generator
+│   └── prompts.ts                # BPMN expert system prompt + process-type context builder
+├── .env.example                  # Example environment variables
+├── next.config.ts                # Next.js config (security headers)
+└── tsconfig.json
 ```
 
 ---
 
-## Build Timeline (Suggested)
+## How It Works
 
-| Phase | What to build | Time |
-|---|---|---|
-| 1. Setup | Next.js project, Tailwind, Anthropic SDK, env vars | Day 1 |
-| 2. API Route | System prompt, Claude integration, JSON parsing | Day 1-2 |
-| 3. Input UI | Process description textarea, example prompts, submit flow | Day 2 |
-| 4. Flowchart | Mermaid.js integration, rendering, colour-coding | Day 3 |
-| 5. Analysis Panel | Bottlenecks, improvements, metrics cards | Day 3-4 |
-| 6. Export | PDF and Markdown download | Day 4 |
-| 7. Polish | Loading states, error handling, responsive design, dark mode | Day 5 |
-| 8. Deploy & Document | Vercel deploy, README, portfolio write-up | Day 5 |
+1. **User input** — The user types a free-text description of their business process and optionally selects a process archetype (e.g. Procure-to-Pay).
 
-**Total: ~5 days of focused work**
+2. **System prompt injection** — `lib/prompts.ts` builds a system prompt that personas Claude as a *Senior Business Process Analyst with 15 years of BPMN and Lean Six Sigma experience*. If a process type is selected, domain-specific context is appended (common actors, typical bottlenecks, standard KPIs for that archetype).
 
----
+3. **Claude API call** — `app/api/analyse/route.ts` sends the system prompt and user description to `claude-sonnet-4-5` via the Anthropic SDK. A 60-second timeout prevents hanging requests.
 
-## Example Test Cases
+4. **Structured JSON response** — Claude returns a single JSON object (no markdown fences) with six top-level fields:
 
-Use these to demo and test your app:
+   | Field | Contents |
+   |---|---|
+   | `summary` | 2–3 sentence executive summary |
+   | `steps` | Array of parsed steps with actor, action, system, type, and bottleneck flag |
+   | `mermaidCode` | Valid Mermaid flowchart string with swim lanes and styled nodes |
+   | `bottlenecks` | Severity-rated list with risk description and recommendation |
+   | `improvements` | Lean-mapped improvement suggestions with estimated gains |
+   | `metrics` | Step counts, automation %, handoff count, and health score |
 
-### Test 1: Order-to-Cash (Simple)
-"When a customer places an order on our website, the sales team receives an email notification. They manually check inventory in a shared spreadsheet. If stock is available, they create a sales order in SAP. The warehouse team picks the items and updates the spreadsheet. Dispatch arranges a courier and sends tracking info to the customer by email."
-
-### Test 2: Employee Onboarding (Medium)
-"HR receives a signed offer letter by email. They manually create accounts in 4 different systems: Active Directory, Slack, Jira, and the payroll system. The hiring manager then sends a welcome email with links to training materials stored in a shared drive. IT ships a laptop — they check a spreadsheet to see what's available. On day one, the new hire meets their buddy who walks them through a paper checklist of tasks to complete in the first week."
-
-### Test 3: Invoice Approval (Complex)
-"A supplier sends an invoice by email. The accounts payable clerk downloads the PDF, manually enters the details into an Excel tracker, then checks if there's a matching purchase order in the ERP. If the amount is under £5,000 it goes to the department manager for approval via email. If over £5,000 it needs finance director sign-off, which requires printing the invoice and getting a physical signature. Once approved, the clerk creates a payment run in the banking portal. Reconciliation is done manually at month-end by comparing the Excel tracker with the bank statement."
-
+5. **Rendering** — The response is validated on the server, then streamed to the client where `MermaidChart.tsx` renders the flowchart, `StepsTable.tsx` renders the steps, and `MetricsBar.tsx` displays the health score.
 
 ---
 
-## Stretch Goals (Post-MVP)
+## Deployment
 
-Once the core works, these additions would make it even more impressive:
+The app is designed for zero-config deployment on Vercel.
 
-1. **Process Comparison Mode** — paste an "as-is" and "to-be" process, Claude generates both flowcharts side-by-side with a gap analysis
-2. **Upload Support** — drag-and-drop a Word doc or PDF of existing process documentation, Claude extracts and analyses it
-3. **Conversation Mode** — Claude asks clarifying questions about the process before generating (multi-turn)
-4. **Template Library** — pre-loaded common processes (Order-to-Cash, Procure-to-Pay, Hire-to-Retire) as starting points
-5. **Cost Estimation** — Claude estimates time/cost savings from each improvement suggestion
-6. **Version History** — save and compare iterations of the same process over time
+### Deploy to Vercel
+
+1. Push your repository to GitHub
+2. Import the project at [vercel.com/new](https://vercel.com/new)
+3. Add the environment variable `ANTHROPIC_API_KEY` in the Vercel project settings
+4. Deploy — Vercel handles the build and serverless API routes automatically
+
+The `next.config.ts` file includes production security headers (CSP, X-Frame-Options, HSTS).
+
+---
+
+## Built By
+
+**Sarthaj Aram Kuni**
+
+Built as part of a portfolio of AI agent projects demonstrating practical Claude API usage, prompt engineering, and full-stack Next.js development.

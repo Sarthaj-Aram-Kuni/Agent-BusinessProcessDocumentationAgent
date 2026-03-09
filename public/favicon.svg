@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#0a0a0f"/>
+
+  <!-- Start node -->
+  <rect x="10" y="2" width="12" height="6" rx="3" fill="none" stroke="#0d9488" stroke-width="1.5"/>
+
+  <!-- Arrow down -->
+  <line x1="16" y1="8" x2="16" y2="11" stroke="#0d9488" stroke-width="1.5"/>
+  <polygon points="16,13 13.5,10 18.5,10" fill="#0d9488"/>
+
+  <!-- Process box -->
+  <rect x="8" y="13" width="16" height="7" rx="2" fill="#0d9488" opacity="0.2" stroke="#0d9488" stroke-width="1.5"/>
+
+  <!-- Arrow down -->
+  <line x1="16" y1="20" x2="16" y2="23" stroke="#0d9488" stroke-width="1.5"/>
+  <polygon points="16,25 13.5,22 18.5,22" fill="#0d9488"/>
+
+  <!-- End node -->
+  <rect x="10" y="25" width="12" height="5" rx="2.5" fill="none" stroke="#0d9488" stroke-width="1.5"/>
+</svg>
